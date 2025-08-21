@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Badge, Layout, Button, Spin, message, Typography } from 'antd';
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import instance from '../utils/api';
 
 const { Header, Content } = Layout;
 const { Search } = Input;
@@ -18,97 +19,29 @@ interface VisaSlot {
   status: 'available' | 'limited' | 'unavailable';
 }
 
+interface IcelandSlotData {
+  message: string;
+  version: string;
+  data: {
+    earliestDate: string;
+    earliestSlotLists: Array<{
+      applicant: string;
+      date: string;
+    }>;
+    error: string | null;
+  };
+}
+
 const Dashboard: React.FC = () => {
   const [visaSlots, setVisaSlots] = useState<VisaSlot[]>([]);
   const [filteredSlots, setFilteredSlots] = useState<VisaSlot[]>([]);
+  const [icelandData, setIcelandData] = useState<IcelandSlotData | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [nextRefresh, setNextRefresh] = useState(180); // 3 minutes in seconds
   const navigate = useNavigate();
 
-  // Mock data - replace with actual API calls
-  const mockVisaData: VisaSlot[] = [
-    {
-      country: 'Germany',
-      flag: '🇩🇪',
-      totalSlots: 25,
-      availableSlots: 15,
-      availableTimes: ['09:00', '10:30', '14:00', '15:30', '16:45'],
-      nextAvailableDate: '2024-03-15',
-      lastUpdated: new Date().toISOString(),
-      status: 'available'
-    },
-    {
-      country: 'United States',
-      flag: '🇺🇸',
-      totalSlots: 20,
-      availableSlots: 3,
-      availableTimes: ['11:00', '14:30', '16:00'],
-      nextAvailableDate: '2024-04-22',
-      lastUpdated: new Date().toISOString(),
-      status: 'limited'
-    },
-    {
-      country: 'United Kingdom',
-      flag: '🇬🇧',
-      totalSlots: 18,
-      availableSlots: 0,
-      availableTimes: [],
-      nextAvailableDate: '2024-06-10',
-      lastUpdated: new Date().toISOString(),
-      status: 'unavailable'
-    },
-    {
-      country: 'Canada',
-      flag: '🇨🇦',
-      totalSlots: 22,
-      availableSlots: 8,
-      availableTimes: ['09:30', '11:00', '13:30', '15:00'],
-      nextAvailableDate: '2024-03-28',
-      lastUpdated: new Date().toISOString(),
-      status: 'available'
-    },
-    {
-      country: 'Australia',
-      flag: '🇦🇺',
-      totalSlots: 15,
-      availableSlots: 2,
-      availableTimes: ['10:00', '15:30'],
-      nextAvailableDate: '2024-05-05',
-      lastUpdated: new Date().toISOString(),
-      status: 'limited'
-    },
-    {
-      country: 'France',
-      flag: '🇫🇷',
-      totalSlots: 30,
-      availableSlots: 12,
-      availableTimes: ['09:00', '10:00', '11:30', '14:00', '15:30', '16:30'],
-      nextAvailableDate: '2024-03-20',
-      lastUpdated: new Date().toISOString(),
-      status: 'available'
-    },
-    {
-      country: 'Italy',
-      flag: '🇮🇹',
-      totalSlots: 16,
-      availableSlots: 6,
-      availableTimes: ['09:30', '11:00', '14:30', '16:00'],
-      nextAvailableDate: '2024-03-25',
-      lastUpdated: new Date().toISOString(),
-      status: 'available'
-    },
-    {
-      country: 'Spain',
-      flag: '🇪🇸',
-      totalSlots: 12,
-      availableSlots: 1,
-      availableTimes: ['15:00'],
-      nextAvailableDate: '2024-05-12',
-      lastUpdated: new Date().toISOString(),
-      status: 'limited'
-    }
-  ];
+  // No mock data - using only real API data
 
   const fetchVisaSlots = useCallback(async () => {
     setLoading(true);
@@ -116,29 +49,48 @@ const Dashboard: React.FC = () => {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // In a real application, you would fetch from your API
-      // const response = await fetch('/api/visa-slots');
-      // const data = await response.json();
+      const response = await instance.get('/');
+      console.log('API Response:', response.data);
       
-      // For now, use mock data with some randomization
-      const updatedData = mockVisaData.map(slot => {
-        const newAvailableSlots = Math.max(0, slot.availableSlots + Math.floor(Math.random() * 5) - 2);
-        const newStatus = newAvailableSlots > 5 ? 'available' : newAvailableSlots > 0 ? 'limited' : 'unavailable';
+      // Check if the response has the expected Iceland data structure
+      if (response.data && response.data.message && response.data.data) {
+        // It's the Iceland API response
+        setIcelandData(response.data as IcelandSlotData);
         
-        return {
-          ...slot,
-          availableSlots: newAvailableSlots,
-          status: newStatus as 'available' | 'limited' | 'unavailable',
-          availableTimes: newAvailableSlots > 0 ? slot.availableTimes.slice(0, newAvailableSlots) : [],
-          lastUpdated: new Date().toISOString()
+        // Convert Iceland data to VisaSlot format for the main display
+        const icelandSlot: VisaSlot = {
+          country: 'Iceland',
+          flag: '🇮🇸',
+          totalSlots: response.data.data.earliestSlotLists?.length || 0,
+          availableSlots: response.data.data.error ? 0 : response.data.data.earliestSlotLists?.length || 0,
+          availableTimes: response.data.data.earliestSlotLists?.map((slot: any) => 
+            new Date(slot.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+          ) || [],
+          nextAvailableDate: response.data.data.earliestDate || 'No date available',
+          lastUpdated: new Date().toISOString(),
+          status: response.data.data.error ? 'unavailable' : 
+                  response.data.data.earliestSlotLists?.length > 0 ? 'available' : 'unavailable'
         };
-      });
+        
+        // Only show Iceland data - no mock data
+        setVisaSlots([icelandSlot]);
+        setFilteredSlots([icelandSlot]);
+      } else {
+        // No valid data - show empty state
+        setVisaSlots([]);
+        setFilteredSlots([]);
+        setIcelandData(null);
+      }
       
-      setVisaSlots(updatedData);
-      setFilteredSlots(updatedData);
       message.success('Visa slots updated successfully');
     } catch (error) {
+      console.error('Error fetching visa slots:', error);
       message.error('Failed to fetch visa slots');
+      
+      // Clear data on error
+      setVisaSlots([]);
+      setFilteredSlots([]);
+      setIcelandData(null);
     } finally {
       setLoading(false);
     }
@@ -243,17 +195,22 @@ const Dashboard: React.FC = () => {
               size="middle"
             />
             <div className="flex gap-1 flex-wrap">
-              {['Germany', 'USA', 'Canada', 'Australia'].map(country => (
-                <Button 
-                  key={country}
-                  size="small" 
-                  onClick={() => setSearchTerm(country)}
-                  type="text"
-                  className="text-blue-600 hover:bg-blue-50 px-2"
-                >
-                  {country}
-                </Button>
-              ))}
+              <Button 
+                size="small" 
+                onClick={() => setSearchTerm('Iceland')}
+                type="text"
+                className="text-blue-600 hover:bg-blue-50 px-2 bg-blue-100 font-medium"
+              >
+                🇮🇸 Iceland
+              </Button>
+              <Button 
+                size="small" 
+                onClick={() => setSearchTerm('')}
+                type="text"
+                className="text-gray-600 hover:bg-gray-50 px-2"
+              >
+                Show All
+              </Button>
             </div>
           </div>
 
@@ -289,6 +246,23 @@ const Dashboard: React.FC = () => {
                         <Text className="text-xs text-gray-500">
                           Updated: {new Date(slot.lastUpdated).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </Text>
+                        {/* Show applicant numbers for Iceland */}
+                        {slot.country === 'Iceland' && icelandData && icelandData.data.earliestSlotLists && (
+                          <div className="flex gap-1 mt-1">
+                            {icelandData.data.earliestSlotLists.map((slotData, slotIndex) => (
+                              <div key={slotIndex} className="flex gap-1">
+                                {slotData.applicant.split(', ').map((applicantNum, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-block px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded font-medium"
+                                  >
+                                    #{applicantNum}
+                                  </span>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -316,28 +290,50 @@ const Dashboard: React.FC = () => {
                         <Text className="text-xs text-gray-500">next date</Text>
                       </div>
 
-                      {/* Available Times - Compact */}
-                      <div className="text-right hidden md:block max-w-xs">
-                        {slot.availableTimes.length > 0 ? (
+                      {/* Applicant Information for Iceland */}
+                      {slot.country === 'Iceland' && icelandData && (
+                        <div className="text-right hidden md:block max-w-xs">
                           <div className="flex flex-wrap gap-1 justify-end">
-                            {slot.availableTimes.slice(0, 4).map((time, timeIndex) => (
-                              <span
-                                key={timeIndex}
-                                className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium"
-                              >
-                                {time}
-                              </span>
+                            {icelandData.data.earliestSlotLists?.map((slotData, slotIndex) => (
+                              <div key={slotIndex} className="flex gap-1">
+                                {slotData.applicant.split(', ').map((applicantNum, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium"
+                                  >
+                                    #{applicantNum}
+                                  </span>
+                                ))}
+                              </div>
                             ))}
-                            {slot.availableTimes.length > 4 && (
-                              <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                                +{slot.availableTimes.length - 4}
-                              </span>
-                            )}
                           </div>
-                        ) : (
-                          <Text className="text-xs text-gray-400">No times</Text>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                      
+                      {/* Available Times - Compact (for non-Iceland) */}
+                      {slot.country !== 'Iceland' && (
+                        <div className="text-right hidden md:block max-w-xs">
+                          {slot.availableTimes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 justify-end">
+                              {slot.availableTimes.slice(0, 4).map((time, timeIndex) => (
+                                <span
+                                  key={timeIndex}
+                                  className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium"
+                                >
+                                  {time}
+                                </span>
+                              ))}
+                              {slot.availableTimes.length > 4 && (
+                                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                                  +{slot.availableTimes.length - 4}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <Text className="text-xs text-gray-400">No times</Text>
+                          )}
+                        </div>
+                      )}
 
                       {/* Progress Indicator */}
                       <div className="w-2 h-12 rounded-full bg-gray-200 overflow-hidden">
@@ -357,6 +353,150 @@ const Dashboard: React.FC = () => {
                   </div>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {/* Iceland API Data Section */}
+          {icelandData && (
+            <div className="mt-6">
+              <Card className="border-l-4 border-l-blue-500">
+                <div className="mb-4">
+                  <Title level={3} className="flex items-center gap-3 mb-3">
+                    🇮🇸 Iceland Visa Slots - Live API Data
+                    <Badge 
+                      color={icelandData.data.error ? 'red' : icelandData.data.earliestSlotLists?.length > 0 ? 'green' : 'orange'} 
+                      text={icelandData.data.error ? 'Error' : icelandData.data.earliestSlotLists?.length > 0 ? 'Available' : 'No Slots'}
+                    />
+                  </Title>
+                  <div className="flex items-center gap-4 mb-2">
+                    <Text className="text-gray-500">API Version: {icelandData.version}</Text>
+                    {icelandData.data.earliestSlotLists && icelandData.data.earliestSlotLists.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Text className="text-gray-500">Applicants Available:</Text>
+                        <div className="flex gap-1">
+                          {icelandData.data.earliestSlotLists.map((slotData, slotIndex) => (
+                            <div key={slotIndex} className="flex gap-1">
+                              {slotData.applicant.split(', ').map((applicantNum, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-block px-2 py-1 bg-green-100 text-green-700 text-sm rounded font-bold"
+                                >
+                                  #{applicantNum}
+                                </span>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Earliest Date Card */}
+                  <Card size="small" className="bg-blue-50">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {icelandData.data.earliestDate ? 
+                          new Date(icelandData.data.earliestDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) : 'No Date'
+                        }
+                      </div>
+                      <Text className="text-sm text-gray-600">Earliest Available Date</Text>
+                    </div>
+                  </Card>
+
+                  {/* Total Slots Card */}
+                  <Card size="small" className="bg-green-50">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {icelandData.data.earliestSlotLists?.length || 0}
+                      </div>
+                      <Text className="text-sm text-gray-600">Available Slots</Text>
+                    </div>
+                  </Card>
+
+                  {/* Status Card */}
+                  <Card size="small" className={`${icelandData.data.error ? 'bg-red-50' : 'bg-gray-50'}`}>
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold ${icelandData.data.error ? 'text-red-600' : 'text-gray-600'}`}>
+                        {icelandData.data.error ? '❌' : '✅'}
+                      </div>
+                      <Text className="text-sm text-gray-600">
+                        {icelandData.data.error ? 'Error Detected' : 'System OK'}
+                      </Text>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Error Display */}
+                {icelandData.data.error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <Text className="text-red-700 font-medium">Error: {icelandData.data.error}</Text>
+                  </div>
+                )}
+
+                {/* Available Slots Details */}
+                {icelandData.data.earliestSlotLists && icelandData.data.earliestSlotLists.length > 0 && (
+                  <div className="mt-4">
+                    <Title level={5} className="mb-3">Available Appointment Slots</Title>
+                    <div className="grid gap-3">
+                      {icelandData.data.earliestSlotLists.map((slot, index) => (
+                        <Card key={index} size="small" className="bg-gradient-to-r from-blue-50 to-green-50 border-l-4 border-l-blue-500">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                              <div className="bg-blue-600 text-white px-3 py-1 rounded-full font-bold text-sm">
+                                Applicants: {slot.applicant}
+                              </div>
+                              <div className="flex gap-1">
+                                {slot.applicant.split(', ').map((applicantNum, idx) => (
+                                  <span 
+                                    key={idx}
+                                    className="bg-white border-2 border-blue-300 text-blue-700 px-2 py-1 rounded-full text-sm font-semibold"
+                                  >
+                                    #{applicantNum}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-blue-600 font-bold text-lg">
+                                {new Date(slot.date).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </div>
+                              <div className="text-green-600 font-semibold">
+                                {new Date(slot.date).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* API Response Details (Collapsible) */}
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <details>
+                    <summary className="cursor-pointer font-medium text-gray-700 hover:text-blue-600">
+                      View Raw API Response
+                    </summary>
+                    <pre className="mt-2 text-xs bg-white p-3 rounded border overflow-auto max-h-40">
+                      {JSON.stringify(icelandData, null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              </Card>
             </div>
           )}
 
