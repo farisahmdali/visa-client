@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Badge, Layout, Button, Spin, message, Typography, Row, Col, Divider } from 'antd';
-import { LogoutOutlined, ReloadOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { LogoutOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import instance from '../utils/api';
 
@@ -48,7 +48,27 @@ const Dashboard: React.FC = () => {
       console.log('API Response:', response.data);
       
       if (response.data && response.data.message && response.data.data) {
-        setApiData(response.data as ApiResponse);
+        // Handle double nested data structure - the actual country data is in data.data.data
+        let actualData;
+        
+        // Check if we have double nesting (data.data.data)
+        if (response.data.data && response.data.data.data) {
+          actualData = response.data.data.data;
+        } else {
+          // Fallback to single nesting (data.data)
+          actualData = response.data.data;
+        }
+        
+        console.log('Processed data:', actualData);
+        
+        // Create a properly formatted response object
+        const formattedResponse: ApiResponse = {
+          message: response.data.message,
+          version: response.data.version,
+          data: actualData
+        };
+        
+        setApiData(formattedResponse);
         message.success('Visa slots updated successfully');
       } else {
         setApiData(null);
@@ -97,6 +117,16 @@ const Dashboard: React.FC = () => {
     switch (countryName.toLowerCase()) {
       case 'iceland': return '🇮🇸';
       case 'norway': return '🇳🇴';
+      case 'malta': return '🇲🇹';
+      case 'lithuania': return '🇱🇹';
+      case 'latvia': return '🇱🇻';
+      case 'italy': return '🇮🇹';
+      case 'hungary': return '🇭🇺';
+      case 'finland': return '🇫🇮';
+      case 'estonia': return '🇪🇪';
+      case 'czech': return '🇨🇿';
+      case 'croatia': return '🇭🇷';
+      case 'austria': return '🇦🇹';
       default: return '🌍';
     }
   };
@@ -105,6 +135,16 @@ const Dashboard: React.FC = () => {
     switch (countryName.toLowerCase()) {
       case 'iceland': return 'blue';
       case 'norway': return 'green';
+      case 'malta': return 'orange';
+      case 'lithuania': return 'purple';
+      case 'latvia': return 'red';
+      case 'italy': return 'cyan';
+      case 'hungary': return 'magenta';
+      case 'finland': return 'lime';
+      case 'estonia': return 'geekblue';
+      case 'czech': return 'volcano';
+      case 'croatia': return 'gold';
+      case 'austria': return 'pink';
       default: return 'purple';
     }
   };
@@ -112,7 +152,12 @@ const Dashboard: React.FC = () => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'No date available';
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      // Handle the specific date format: "09/16/2025 00:00:00"
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      return date.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -125,7 +170,11 @@ const Dashboard: React.FC = () => {
 
   const formatTimeFromDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleTimeString([], {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid time';
+      }
+      return date.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit'
       });
@@ -138,6 +187,11 @@ const Dashboard: React.FC = () => {
   const filteredData = apiData ? Object.entries(apiData.data).filter(([countryName]) =>
     countryName.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
+
+  // Debug logging
+  console.log('API Data:', apiData);
+  console.log('Filtered Data:', filteredData);
+  console.log('Search Term:', searchTerm);
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -222,6 +276,22 @@ const Dashboard: React.FC = () => {
                     className="text-green-600 hover:bg-green-50 px-3 bg-green-100 font-medium"
                   >
                     🇳🇴 Norway
+                  </Button>
+                  <Button 
+                    size="middle" 
+                    onClick={() => setSearchTerm('malta')}
+                    type="text"
+                    className="text-orange-600 hover:bg-orange-50 px-3 bg-orange-100 font-medium"
+                  >
+                    🇲🇹 Malta
+                  </Button>
+                  <Button 
+                    size="middle" 
+                    onClick={() => setSearchTerm('lithuania')}
+                    type="text"
+                    className="text-purple-600 hover:bg-purple-50 px-3 bg-purple-100 font-medium"
+                  >
+                    🇱🇹 Lithuania
                   </Button>
                 </div>
               </Col>
@@ -440,17 +510,28 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Raw API Data (Collapsible) */}
+          {/* Debug Information */}
           {apiData && (
             <div className="mt-8">
               <Card size="small" className="bg-gray-50">
                 <details>
                   <summary className="cursor-pointer font-medium text-gray-700 hover:text-blue-600 text-center">
-                    📋 View Raw API Response
+                    🔍 Debug Information
                   </summary>
-                  <pre className="mt-4 text-xs bg-white p-4 rounded border overflow-auto max-h-60">
-                    {JSON.stringify(apiData, null, 2)}
-                  </pre>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <Text className="font-medium">Countries found: {Object.keys(apiData.data).length}</Text>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {Object.keys(apiData.data).join(', ')}
+                      </div>
+                    </div>
+                    <div>
+                      <Text className="font-medium">Filtered data: {filteredData.length}</Text>
+                    </div>
+                    <pre className="text-xs bg-white p-4 rounded border overflow-auto max-h-60">
+                      {JSON.stringify(apiData, null, 2)}
+                    </pre>
+                  </div>
                 </details>
               </Card>
             </div>
