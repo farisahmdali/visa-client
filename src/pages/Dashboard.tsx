@@ -202,20 +202,20 @@ const Dashboard: React.FC = () => {
 
   return (
     <Layout className="min-h-screen bg-gray-100">
-      <Header className="bg-white shadow-sm border-b h-16 px-4 sticky top-0 z-10">
-         <div className="flex items-center justify-between h-full max-w-screen-xl mx-auto">
+      <Header className="bg-blue-700 shadow-sm border-b h-16 px-4 sticky top-0 z-10">
+         <div className="flex items-center justify-between h-full max-w-screen-xl mx-auto ">
            <div className="flex items-center gap-3">
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-               <Text className="text-white font-bold text-sm">VS</Text>
+               <span className="text-white font-bold text-sm">VS</span>
              </div>
-             <Title level={4} className="m-0 text-gray-800 hidden sm:block">Visa Status Dashboard</Title>
+             <span className="m-0 text-white text-lg font-semibold hidden sm:block">Visa Status Dashboard</span>
            </div>
            <div className="flex items-center gap-4">
-             <Text className="text-sm text-gray-500 hidden sm:block">
+             <span className="text-sm text-white hidden sm:block">
                Next refresh: {formatTime(nextRefresh)}
-             </Text>
+             </span>
              <Button icon={<ReloadOutlined />} onClick={fetchVisaData} loading={loading} type="primary" shape="circle" />
-             <Button icon={<LogoutOutlined />} onClick={handleLogout} type="text" className="text-gray-500" />
+             <Button icon={<LogoutOutlined />} onClick={handleLogout} type="text" className="text-white" />
            </div>
          </div>
       </Header>
