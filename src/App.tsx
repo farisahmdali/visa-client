@@ -4,8 +4,10 @@ import { ConfigProvider } from 'antd';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-
+document.addEventListener("contextmenu", e => e.preventDefault());
 const App: React.FC = () => {
+
+  
   return (
     <ConfigProvider
       theme={{
