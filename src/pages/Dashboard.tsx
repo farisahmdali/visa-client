@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Input, Layout, Button, Spin, message, Typography, Row, Col, Divider, Tag, Modal, Radio, Calendar, List, Space, Empty, Statistic } from 'antd';
-import { LogoutOutlined, ReloadOutlined, GlobalOutlined, CheckCircleOutlined, SyncOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Card, Input, Layout, Button, Spin, message, Typography, Row, Col, Divider, Modal, Radio, Calendar, List, Space, Empty, Statistic } from 'antd';
+import { LogoutOutlined, ReloadOutlined, GlobalOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import dayjs, { Dayjs } from 'dayjs';
+import  { Dayjs } from 'dayjs';
 
 const { Header, Content } = Layout;
 const { Search } = Input;
@@ -168,13 +168,7 @@ const Dashboard: React.FC = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
   
-  const formatTimestamp = (timestamp: number) => {
-    if (!timestamp) return 'N/A';
-    return dayjs(timestamp).format('DD MMM YYYY');
-  };
 
-  const getCurrencySymbol = (currencyCode: string) => ({ GBP: '£', USD: '$', EUR: '€' }[currencyCode] || currencyCode);
-  
   const dateCellRender = (value: Dayjs) => {
     const formattedDate = value.format('DD-MM-YYYY');
     const cityData = availableSlots?.centre_dates.find(c => c.centre_name === selectedCity);
@@ -188,8 +182,6 @@ const Dashboard: React.FC = () => {
   // --- Data for rendering (no changes) ---
   const filteredData = apiData?.filter(country => country.name.toLowerCase().includes(searchTerm.toLowerCase())) || [];
   const totalCountries = apiData?.length || 0;
-  const totalVisasProcessed = apiData?.reduce((sum, country) => sum + country.visas_done_in_k, 0) || 0;
-  const supportedCountries = apiData?.filter(c => c.supported).length || 0;
 
   // --- Custom component for List's empty state ---
   const EmptyListView = () => (
