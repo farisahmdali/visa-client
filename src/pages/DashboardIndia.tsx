@@ -55,7 +55,7 @@ interface SlotsApiResponse {
   centre_dates: CentreDate[];
 }
 
-const Dashboard: React.FC = () => {
+const DashboardIndia: React.FC = () => {
   const [apiData, setApiData] = useState<Country[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,8 +73,8 @@ const Dashboard: React.FC = () => {
   const fetchVisaData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get<CountriesApiResponse>('https://api.atlys.com/api/v3/countries?citizenship=GB&residence=GB&pincode=641020&isEnterprise=false');
-      const eres = await axios.get('https://api.atlys.com/api/v2/application/slots/FR?residence=GB&citizenship=IN&purpose=atlys_black&travellersCount=1&withAllSlots=true&getCitiesWiseSlots=false');
+      const response = await axios.get<CountriesApiResponse>('https://api.atlys.com/api/v3/countries?citizenship=IN&residence=IN&pincode=641020&isEnterprise=false');
+      const eres = await axios.get('https://api.atlys.com/api/v2/application/slots/FR?residence=IN&citizenship=IN&purpose=atlys_black&travellersCount=1&withAllSlots=true&getCitiesWiseSlots=false');
       if (response.data && Array.isArray(response.data.countries)) {
         const allowedCountries = [
           "France", "Greece", "Spain", "Netherlands", "Denmark", "Austria",
@@ -89,8 +89,6 @@ const Dashboard: React.FC = () => {
           response.data.countries
             .filter(
               (country) =>
-                ['appointment', 'schengen_appointment'].includes(country.service_type) &&
-                country.purpose === "atlys_black" &&
                 normalizedAllowed.includes(country.name.trim().toLowerCase())
             )
         );
@@ -118,7 +116,7 @@ const Dashboard: React.FC = () => {
 
     try {
       const response = await axios.get<SlotsApiResponse>(`https://api.atlys.com/api/v2/application/slots/${countryCode}`, {
-        params: { residence: "GB", citizenship: 'IN', purpose: "atlys_black", travellersCount: 1, withAllSlots: true, getCitiesWiseSlots: true }
+        params: { residence: "IN", citizenship: 'IN', purpose: "atlys_black", travellersCount: 1, withAllSlots: true, getCitiesWiseSlots: true }
       });
 
       if (response.data && response.data.ok) {
@@ -194,6 +192,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <Layout className="min-h-screen bg-gray-100">
+      
       <Header className="bg-blue-700 shadow-sm border-b h-16 px-4 sticky top-0 z-10">
          <div className="flex items-center justify-between h-full max-w-screen-xl mx-auto ">
            <div className="flex items-center gap-3">
@@ -209,15 +208,15 @@ const Dashboard: React.FC = () => {
              <Button icon={<ReloadOutlined />} onClick={fetchVisaData} loading={loading} type="primary" shape="circle" />
              <Button icon={<LogoutOutlined />} onClick={handleLogout} type="text" className="text-white" />
            </div>
-           <Button 
+        <Button 
           type="primary" 
-          onClick={() => navigate('/dashboard/india',{replace:true})}
+          onClick={() => navigate('/dashboard',{replace:true})}
         >
-          Go to India Tab
+          Go to UK Tab
         </Button>
          </div>
       </Header>
-
+     
       <Content className="p-4 sm:p-6">
         <div className="max-w-screen-xl mx-auto">
           {/* --- Search and Stats Card (no changes) --- */}
@@ -358,4 +357,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardIndia;

@@ -4,6 +4,7 @@ import { ConfigProvider } from 'antd';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardIndia from './pages/DashboardIndia';
 document.addEventListener("contextmenu", e => e.preventDefault());
 const App: React.FC = () => {
 
@@ -25,6 +26,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+           <Route 
+            path="/dashboard/india" 
+            element={
+              <ProtectedRoute>
+                <DashboardIndia />
               </ProtectedRoute>
             } 
           />
